@@ -1,0 +1,89 @@
+---
+title: "02_Map_DM_lifespans"
+author: "Hannah Koenker"
+date: "11/30/2021"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(maptools)
+library(maps)
+library(broom)
+library(readxl)
+library(janitor)
+library(spData)
+```
+
+```{r worldmap}
+africa = world %>% 
+  filter(continent == "Africa", !is.na(iso_a2)) %>% 
+  left_join(worldbank_df, by = "iso_a2") %>% 
+  dplyr::select(name, subregion) %>% 
+  st_transform("+proj=aea +lat_1=20 +lat_2=-23 +lat_0=0 +lon_0=25")
+plot(africa)
+
+## This file does not have South Sudan:
+
+# data(wrld_simpl)
+# afr=wrld_simpl[wrld_simpl$REGION==2,]
+# plot(afr)
+```
+
+
+```{r read}
+surv <- read_excel("/Users/hannahkoenker/Dropbox/A DHS MIS Datasets/Analysis/Durability Pooled/Median lifespan DM multisite.xlsx") %>% clean_names() %>% 
+  separate(gps, into = c("Lati", "Longi"), sep = ",", convert = TRUE) 
+
+afr_surv_fortified <- tidy(afr, region = "NAME")
+
+surv <- surv %>%
+  mutate(lifespan = cut(medianlifespan, breaks = c(0, 1, 2, 3, 4, 5, 6))) %>%
+   mutate(lifespan = as.factor(lifespan)) %>% 
+  dplyr::select(country, end, iso, district, medianlifespan, bndsurv, lifespan, Lati, Longi)
+
+# early studies are set as 2.9 median lifespan per Tom Smith's unpublished paper from July 2021, across all brands and sites.
+
+  
+```
+
+```{r SF}
+africa %>% 
+  ggplot() +
+  geom_sf(aes(geometry = geom), fill = "WhiteSmoke", colour = "white", size = .5) +
+ geom_point(data = surv, aes(x = Longi, y = Lati, fill=lifespan), size = 2, shape = 21, colour = "darkgrey", alpha = 8/10) +
+  theme_void() +
+  scale_fill_brewer(palette = "Spectral", na.value = "WhiteSmoke", labels = c("0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "results pending or unpublished")) +
+  coord_sf() +
+   labs(fill="Median lifespan (years)",
+        title = "Estimated median ITN lifespan reported from field durability studies, 2008-present") +
+  theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
+
+ggsave("dm_map_survival2.pdf")
+```
+
+```{r Polygon}
+
+afr_surv_fortified %>% 
+  ggplot() +
+  geom_polygon(aes(x = long, y = lat, group = group), colour = "white", size = .5, fill = "WhiteSmoke") +
+ geom_point(data = surv, aes(x = Longi, y = Lati, fill=lifespan), size = 2, shape = 21, colour = "darkgrey", alpha = 8/10) +
+  theme_void() +
+  scale_fill_brewer(palette = "Spectral", na.value = "WhiteSmoke", labels = c("0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "results pending or unpublished")) +
+  coord_map() +
+   labs(fill="Median lifespan (years)",
+        title = "Estimated median ITN lifespan reported from field durability studies, 2008-present") +
+  theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
+
+ggsave("dm_map_survival.pdf")
+
+
+
+#### I don't want the labels right now
+
+# geom_text(data = surv, aes(x = Longi, y = Lati, label=ifelse(is.na(medianlifespan),as.character(district),as.character(bndsurv))), hjust=1.1, vjust=1.1, size = 2) +
+   
+```
+

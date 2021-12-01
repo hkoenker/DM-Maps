@@ -1,0 +1,49 @@
+---
+title: "DM Map"
+author: "Hannah Koenker"
+date: "11/29/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(maptools)
+library(maps)
+library(broom)
+```
+
+```{r worldmap}
+data(wrld_simpl)
+afr=wrld_simpl[wrld_simpl$REGION==2,]
+plot(afr)
+```
+
+```{r read}
+dm <- read.csv("dm_studies.csv") %>% 
+  filter(Published==0 & End>2019)
+
+afr_fortified <- tidy(afr, region = "NAME")
+```
+
+```{r join}
+afr_fortified = afr_fortified %>% 
+  left_join(. , dm, by=c("id"="Country"))
+
+```
+
+```{r map}
+afr_fortified %>% 
+  ggplot() +
+  geom_polygon(aes(fill=factor(End), x=long, y=lat, group = group), color = "white", size=.4) +
+  theme_void() +
+  coord_map() +
+  scale_fill_brewer(palette = "Set1",na.value="WhiteSmoke") +
+  labs(fill="End Date")
+
+ggsave("dm_map.png")
+
+```
+
