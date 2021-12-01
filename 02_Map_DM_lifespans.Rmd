@@ -24,9 +24,9 @@ First I gather the data - found both these bits of code via search, I'm not exac
 ``` {r wrld_simpl}
 ## This file does not have South Sudan:
 
-data(wrld_simpl)
-afr=wrld_simpl[wrld_simpl$REGION==2,]
-plot(afr)
+# data(wrld_simpl)
+# afr=wrld_simpl[wrld_simpl$REGION==2,]
+# plot(afr)
 ```
 
 This map source from World Bank has South Sudan, which is better.
@@ -40,6 +40,11 @@ plot(africa)
 
 ```
 
+```{r dontneed}
+# library(raster)
+# getData("GADM", country = "SS, level = 2") # get south sudan map
+```
+
 I read in my data about how long insecticide-treated nets are lasting in sub-Saharan Africa. They are supposed to last 3 years but frequently they wear out / are thrown away before that.
 
 
@@ -47,8 +52,8 @@ I read in my data about how long insecticide-treated nets are lasting in sub-Sah
 surv <- read_excel("Median lifespan DM multisite.xlsx") %>% clean_names() %>% 
   separate(gps, into = c("Lati", "Longi"), sep = ",", convert = TRUE) 
 
-# this code was recommended by my source, I don't yet understand what it does exactly or why we call it 'fortified', but ok.
-afr_surv_fortified <- tidy(afr, region = "NAME")
+# tidy extracts the named columns from the shapefile. Broom works on the SP object.
+# afr_surv_fortified <- tidy(afr, region = "NAME")
 
 # make breaks in medianlifespan and convert to factor, drop extraneous variables
 surv <- surv %>%
@@ -61,45 +66,51 @@ surv <- surv %>%
   
 ```
 
-First map, with no South Sudan in the base map. This is what I'm going for but I will get in trouble because of the base map.
-
-```{r Map1_Polygon}
-
-afr_surv_fortified %>% 
-  ggplot() +
-  geom_polygon(aes(x = long, y = lat, group = group), colour = "white", size = .5, fill = "WhiteSmoke") +
- geom_point(data = surv, aes(x = Longi, y = Lati, fill=lifespan), size = 2, shape = 21, colour = "darkgrey", alpha = 8/10) +
-  theme_void() +
-  scale_fill_brewer(palette = "Spectral", na.value = "WhiteSmoke", labels = c("0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "results pending or unpublished")) +
-  coord_map() +
-   labs(fill="Median lifespan (years)",
-        title = "Estimated median ITN lifespan reported from field durability studies, 2008-present") +
-  theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
-
-ggsave("dm_map_survival.pdf")
 
 
+```{r make_sf}
+crs_africa <-  st_crs(africa)
 
-#### I don't want the labels right now
+surv_sf <- surv %>% 
+  filter(!is.na(Longi)) %>% 
+  st_as_sf(coords = c("Longi", "Lati"), crs = 4326) %>% 
+  st_transform(crs = crs_africa)
 
-# geom_text(data = surv, aes(x = Longi, y = Lati, label=ifelse(is.na(medianlifespan),as.character(district),as.character(bndsurv))), hjust=1.1, vjust=1.1, size = 2) +
-   
 ```
 
-Second map, with South Sudan, using geom_sf instead of geom_polygon - but why are only NA points showing up in one location in the middle of the map / DRC? 
-
-```{r Map2_SF}
-africa %>% 
-  ggplot() +
-  geom_sf(aes(geometry = geom), fill = "WhiteSmoke", colour = "white", size = .5) +
- geom_point(data = surv, aes(x = Longi, y = Lati, fill=lifespan), size = 2, shape = 21, colour = "darkgrey", alpha = 8/10) +
+``` {r Map2}
+ggplot() +
+  geom_sf(data = africa,
+          fill = "WhiteSmoke",
+          color = "white",
+          size = 0.5) +
+  geom_sf(data = surv_sf,
+    aes(fill = lifespan),
+    size = 2,
+    shape = 21,
+    colour = "darkgrey",
+    alpha = 8 / 10
+  ) +
   theme_void() +
-  scale_fill_brewer(palette = "Spectral", na.value = "WhiteSmoke", labels = c("0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "results pending or unpublished")) +
+  scale_fill_brewer(
+    palette = "Spectral",
+    na.value = "WhiteSmoke",
+    labels = c(
+      "0-1",
+      "1-2",
+      "2-3",
+      "3-4",
+      "4-5",
+      "5-6",
+      "results pending or unpublished"
+    )
+  ) +
   coord_sf() +
-   labs(fill="Median lifespan (years)",
-        title = "Estimated median ITN lifespan reported from field durability studies, 2008-present") +
-  theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
+  labs(fill = "Median lifespan (years)",
+       title = "Estimated median ITN lifespan reported from field durability studies, 2008-present") +
+  theme(plot.margin = grid::unit(c(0, 0, 0, 0), "null"))
 
-ggsave("dm_map_survival2.pdf")
+ggsave("dm_map_survival2.png")
+ 
 ```
 

@@ -1,0 +1,63 @@
+---
+title: "Graph of Meta Regression Table Kilian 2020"
+author: "Hannah Koenker"
+date: "12/1/2021"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(maptools)
+library(maps)
+library(broom)
+library(readxl)
+library(janitor)
+library(spData)
+library(sf)
+```
+
+```{r read}
+meta <- read_excel("meta_regression_table.xlsx") %>% 
+  clean_names() %>% 
+  drop_na(group) %>% 
+  rename(ahr = adjusted_hazard_ratio_a_hr,
+         ci = x95_percent_ci,
+         pval = p_value) %>% 
+  mutate(sig = case_when(pval < 0.05 ~ 1,
+                       pval >= 0.05 ~ 0,
+                       is.na(pval) ~ 2)) %>% 
+  mutate(sig = factor(sig, labels = c("not significant", "significant", "reference"))) %>% 
+  mutate(determinant = as.factor(variable)) %>% 
+  mutate(determinant = fct_reorder2(determinant, ahr, group))
+```
+
+```{r}
+meta %>% 
+  ggplot(aes(determinant, ahr, fill = sig, label = variable)) +
+  geom_point(size = 3, shape = 21, colour = "darkgrey", alpha = 10/10) +
+  theme_minimal() +
+  scale_fill_manual(values = c("lightblue", "steelblue", "WhiteSmoke")) +
+  geom_text(aes(label = ifelse(pval<0.05, as.character(variable),"")), hjust="center", vjust=2, size = 4) +
+  theme(axis.text.x=element_blank()) +
+  labs(x = "",
+       y = "Adjusted Hazard Ratio",
+       fill = "") +
+  annotate(
+    "text", label = "Protective", 
+    x = 1, y=0.6, size = 7, color = "DarkGrey", hjust="left") +
+  annotate(
+    "text", label = "Destructive", 
+    x = 1, y=1.2, size = 7, color = "DarkGrey", hjust="left") +
+  geom_rect(aes(xmin = 1, xmax = 20, ymin = -Inf, ymax = 1),
+            alpha = 0.005,
+            fill = "green") +
+  geom_rect(aes(xmin = 1, xmax = 20, ymin = 1, ymax = Inf),
+            alpha = 0.005,
+            fill = "red") +
+  scale_x_discrete(expand=c(0.2, 0))
+
+ggsave("determinants_net_survival.png")
+```
+
