@@ -7,7 +7,7 @@ editor_options:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 library(tidyverse)
 library(maptools)
 library(maps)
@@ -15,8 +15,21 @@ library(broom)
 library(readxl)
 library(janitor)
 library(spData)
+library(sf)
 ```
 
+First I gather the data - found both these bits of code via search, I'm not exactly sure what the st_transform does but that's ok for now.
+
+
+``` {r wrld_simpl}
+## This file does not have South Sudan:
+
+data(wrld_simpl)
+afr=wrld_simpl[wrld_simpl$REGION==2,]
+plot(afr)
+```
+
+This map source from World Bank has South Sudan, which is better.
 ```{r worldmap}
 africa = world %>% 
   filter(continent == "Africa", !is.na(iso_a2)) %>% 
@@ -25,46 +38,31 @@ africa = world %>%
   st_transform("+proj=aea +lat_1=20 +lat_2=-23 +lat_0=0 +lon_0=25")
 plot(africa)
 
-## This file does not have South Sudan:
-
-# data(wrld_simpl)
-# afr=wrld_simpl[wrld_simpl$REGION==2,]
-# plot(afr)
 ```
 
+I read in my data about how long insecticide-treated nets are lasting in sub-Saharan Africa.
 
 ```{r read}
-surv <- read_excel("/Users/hannahkoenker/Dropbox/A DHS MIS Datasets/Analysis/Durability Pooled/Median lifespan DM multisite.xlsx") %>% clean_names() %>% 
+surv <- read_excel("Median lifespan DM multisite.xlsx") %>% clean_names() %>% 
   separate(gps, into = c("Lati", "Longi"), sep = ",", convert = TRUE) 
 
+# this code was recommended by my source, I don't yet understand what it does exactly or why we call it 'fortified', but ok.
 afr_surv_fortified <- tidy(afr, region = "NAME")
 
+# make breaks in medianlifespan and convert to factor, drop extraneous variables
 surv <- surv %>%
   mutate(lifespan = cut(medianlifespan, breaks = c(0, 1, 2, 3, 4, 5, 6))) %>%
    mutate(lifespan = as.factor(lifespan)) %>% 
   dplyr::select(country, end, iso, district, medianlifespan, bndsurv, lifespan, Lati, Longi)
 
-# early studies are set as 2.9 median lifespan per Tom Smith's unpublished paper from July 2021, across all brands and sites.
+# note to self: early studies are set as 2.9 median lifespan per Tom Smith's unpublished paper from July 2021, across all brands and sites.
 
   
 ```
 
-```{r SF}
-africa %>% 
-  ggplot() +
-  geom_sf(aes(geometry = geom), fill = "WhiteSmoke", colour = "white", size = .5) +
- geom_point(data = surv, aes(x = Longi, y = Lati, fill=lifespan), size = 2, shape = 21, colour = "darkgrey", alpha = 8/10) +
-  theme_void() +
-  scale_fill_brewer(palette = "Spectral", na.value = "WhiteSmoke", labels = c("0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "results pending or unpublished")) +
-  coord_sf() +
-   labs(fill="Median lifespan (years)",
-        title = "Estimated median ITN lifespan reported from field durability studies, 2008-present") +
-  theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
+First map, with no South Sudan in the base map. This is what I'm going for but I will get in trouble because of the base map.
 
-ggsave("dm_map_survival2.pdf")
-```
-
-```{r Polygon}
+```{r Map1_Polygon}
 
 afr_surv_fortified %>% 
   ggplot() +
@@ -85,5 +83,22 @@ ggsave("dm_map_survival.pdf")
 
 # geom_text(data = surv, aes(x = Longi, y = Lati, label=ifelse(is.na(medianlifespan),as.character(district),as.character(bndsurv))), hjust=1.1, vjust=1.1, size = 2) +
    
+```
+
+Second map, with South Sudan, using geom_sf instead of geom_polygon - but why are only NA points showing up in one location in the middle of the map / DRC? 
+
+```{r Map2_SF}
+africa %>% 
+  ggplot() +
+  geom_sf(aes(geometry = geom), fill = "WhiteSmoke", colour = "white", size = .5) +
+ geom_point(data = surv, aes(x = Longi, y = Lati, fill=lifespan), size = 2, shape = 21, colour = "darkgrey", alpha = 8/10) +
+  theme_void() +
+  scale_fill_brewer(palette = "Spectral", na.value = "WhiteSmoke", labels = c("0-1", "1-2", "2-3", "3-4", "4-5", "5-6", "results pending or unpublished")) +
+  coord_sf() +
+   labs(fill="Median lifespan (years)",
+        title = "Estimated median ITN lifespan reported from field durability studies, 2008-present") +
+  theme(plot.margin=grid::unit(c(0,0,0,0), "mm"))
+
+ggsave("dm_map_survival2.pdf")
 ```
 
