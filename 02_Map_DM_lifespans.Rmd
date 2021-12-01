@@ -40,7 +40,8 @@ plot(africa)
 
 ```
 
-I read in my data about how long insecticide-treated nets are lasting in sub-Saharan Africa.
+I read in my data about how long insecticide-treated nets are lasting in sub-Saharan Africa. They are supposed to last 3 years but frequently they wear out / are thrown away before that.
+
 
 ```{r read}
 surv <- read_excel("Median lifespan DM multisite.xlsx") %>% clean_names() %>% 
