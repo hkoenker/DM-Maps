@@ -1,0 +1,41 @@
+---
+title: "Risk Index Composition"
+author: "Hannah Koenker"
+date: "12/1/2021"
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(broom)
+library(readxl)
+library(janitor)
+
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r read}
+ri <- read_excel("/Users/hannahkoenker/Dropbox/A DHS MIS Datasets/Analysis/Durability Pooled/risk_index_components.xlsx") %>% 
+  clean_names() %>% 
+  mutate(group = as.factor(level)) %>% 
+  mutate(group = fct_relevel(group, "Risk", after = Inf))
+```
+
+```{r plot}
+ri %>% 
+  # filter(level == "Net Handling") %>% 
+  ggplot(aes(weight, group, fill = var)) +
+           geom_bar(stat = "identity", position = "stack") +
+  theme_minimal() +
+  labs(fill = "Component",
+       x = "Percent",
+       y = "Category") +
+  geom_text(aes(label=var), size = 3, position=position_stack(vjust=0.5)) +
+   theme(legend.position = "none") +
+  scale_fill_manual(values = c("lightgreen", "palegreen", "steelblue", "lightskyblue", "mediumaquamarine", "powderblue", "lightseagreen", "lightseagreen", "thistle", "plum", "skyblue", "mediumorchid", "deepskyblue", "forestgreen", "orchid"))
+
+# still ugly
+```
+
