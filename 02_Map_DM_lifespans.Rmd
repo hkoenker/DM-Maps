@@ -114,3 +114,94 @@ ggsave("dm_map_survival2.png")
  
 ```
 
+``` {r Map3}
+# africa_rd <- africa %>% 
+#   mutate(rd = case_when(
+#     name == "Nigeria" ~ 1,
+#     name == "Tanzania" ~ 1,
+#     name == "DRC" ~ 1,
+#     name == "Mozambique" ~ 1,
+#     TRUE ~ 2))    
+# 
+# cty_fills <- c("WhiteSmoke", "Teal")
+# 
+#   ggplot() +
+#   geom_sf(data = africa_rd,
+#           fill = rd,
+#           color = "white",
+#           size = 0.5) 
+#   
+#   
+#   +
+#   geom_sf(data = surv_sf,
+#     aes(fill = lifespan),
+#     size = 2,
+#     shape = 21,
+#     colour = "darkgrey",
+#     alpha = 8 / 10
+#   ) +
+#   theme_void() +
+#   scale_fill_brewer(
+#     palette = "Spectral",
+#     na.value = "WhiteSmoke",
+#     labels = c(
+#       "0-1",
+#       "1-2",
+#       "2-3",
+#       "3-4",
+#       "4-5",
+#       "5-6",
+#       "results pending or unpublished"
+#     )
+#   ) +
+#   coord_sf() +
+#   labs(fill = "XXX",
+#        title = "Sites included in RD Score Analysis") +
+#   theme(plot.margin = grid::unit(c(0, 0, 0, 0), "null"))
+# 
+# ggsave("dm_map_RD_sites.png")
+ 
+```
+
+
+```{r Map4}
+
+rd <- surv_sf %>% 
+  filter(end == 2018 | end == 2019,
+         !is.na(lifespan),
+         country != "Ethiopia")
+
+ggplot() +
+  geom_sf(data = africa,
+          fill = "WhiteSmoke",
+          color = "white",
+          size = 0.5) +
+  geom_sf(data = rd,
+    aes(fill = lifespan),
+    size = 4,
+    shape = 21,
+    colour = "darkgrey",
+    alpha = 8 / 10
+  ) +
+  theme_void() +
+  scale_fill_brewer(
+    palette = "Spectral",
+    na.value = "WhiteSmoke",
+    labels = c(
+      "0-1",
+      "1-2",
+      "2-3",
+      "3-4",
+      "4-5",
+      "5-6",
+      "results pending or unpublished"
+    )
+  ) +
+  coord_sf() +
+  labs(fill = "Median lifespan (years)",
+       title = "Sites included in RD Analysis") +
+  theme(plot.margin = grid::unit(c(0, 0, 0, 0), "null"))
+
+ggsave("dm_map_rd2.png")
+```
+
