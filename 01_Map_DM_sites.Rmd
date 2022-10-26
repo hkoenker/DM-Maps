@@ -13,33 +13,44 @@ library(tidyverse)
 library(maptools)
 library(maps)
 library(broom)
+library(readxl)
+
 ```
 
 ```{r worldmap}
-data(wrld_simpl)
-afr=wrld_simpl[wrld_simpl$REGION==2,]
-plot(afr)
+# data(wrld_simpl)
+# afr=wrld_simpl[wrld_simpl$REGION==2,]
+# plot(afr)
 ```
 
 ```{r read}
-dm <- read.csv("dm_studies.csv") %>% 
-  filter(Published==0 & End>2019)
-
-afr_fortified <- tidy(afr, region = "NAME")
+dm <- read_excel("Median lifespan DM multisite.xlsx") %>% 
+  filter(End>2019) %>% 
+  mutate(name_long = Country)
 ```
 
-```{r join}
-afr_fortified = afr_fortified %>% 
-  left_join(. , dm, by=c("id"="Country"))
+```{r africa}
+world <- st_read(system.file("shapes/world.gpkg", package="spData"))
+africa = world %>% 
+  filter(continent == "Africa", !is.na(iso_a2)) %>% 
+  left_join(dm, by = "iso_a2") %>% 
+  st_transform("+proj=aea +lat_1=20 +lat_2=-23 +lat_0=0 +lon_0=25")
+plot(africa)
 
+#crs_africa <-  st_crs(africa)
+```
+
+```{r}
+# dm_sf <- dm %>% 
+#   st_transform(crs = crs_africa)
 ```
 
 ```{r map}
-afr_fortified %>% 
+africa %>% 
   ggplot() +
-  geom_polygon(aes(fill=factor(End), x=long, y=lat, group = group), color = "white", size=.4) +
+  geom_sf(aes(fill=factor(End)), color = "white", size=.4) +
   theme_void() +
-  coord_map() +
+  coord_sf() +
   scale_fill_brewer(palette = "Set1",na.value="WhiteSmoke") +
   labs(fill="End Date")
 
