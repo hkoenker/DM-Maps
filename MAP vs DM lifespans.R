@@ -4,10 +4,8 @@ library(tidyverse)
 library(janitor)
 library(readxl)
 
-setwd("/Users/hannahkoenker/Dropbox/A DHS MIS Datasets/Analysis/Durability Monitoring")
 
-
-ls <- read_excel("data/Copy of MAP ITN retention data.xlsx", sheet="Sheet1") %>%
+ls <- read_excel("/Users/hannahkoenker/Dropbox/A DHS MIS Datasets/Analysis/Durability Monitoring/data/Copy of MAP ITN retention data.xlsx", sheet="Sheet1") %>%
   clean_names() %>%
   drop_na(country) %>%
   rename(lifespan=median_retention_years) %>%
@@ -54,10 +52,7 @@ ls %>%
 ggsave("MAP_vs_DM_lifespans.png")
 
 
-ls2 <- read_excel("Median Lifespan DM Multisite.xlsx") %>%
-  clean_names() %>% 
-  filter(medianlifespan>0) %>% 
-  select(country, end, medianlifespan, survivalinserviceablecondition,region, brand, brandsurv, )
+
 
 ls %>% 
   filter(type=="DM") %>%
@@ -74,4 +69,5 @@ ls %>%
        y = "Estimated median lifespan after 36 months",
        color="")
 
-ggsave("DM_lifespans_by_year.png")
+
+
